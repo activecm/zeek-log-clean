@@ -19,14 +19,14 @@ setup() {
     # create partition in the disk image; try to be more exact
     mkfs -t ext4 test.img 1060 >/dev/null 2>&1
     # mount the disk image
-    mkdir -p test
-    sudo mount -o loop,rw,sync test.img "$TESTDIR"
+    mkdir -p $TESTDIR
+    sudo mount -o loop,rw,sync test.img $TESTDIR
     # allow writing to the mounted image
-    sudo chown $(id -u):$(id -g) test
+    sudo chown $(id -u):$(id -g) $TESTDIR
 }
 
 teardown() {
-    sudo umount test
+    sudo umount $TESTDIR
     cd /
     # remove temp directory
     temp_del "$WORKDIR"
@@ -47,9 +47,9 @@ fill_to() {
 
     mkdir -p $(dirname "$target_file")
     
-    used_percent=$(df -P "$TESTDIR" | tail -1 | awk '{print $5}' | tr -d %)
-    available_blocks=$(df -P "$TESTDIR" | tail -1 | awk '{print $4}')
-    total_blocks=$(df -P "$TESTDIR" | tail -1 | awk '{print $2}')
+    used_percent=$(df -P $TESTDIR | tail -1 | awk '{print $5}' | tr -d %)
+    available_blocks=$(df -P $TESTDIR | tail -1 | awk '{print $4}')
+    total_blocks=$(df -P $TESTDIR | tail -1 | awk '{print $2}')
     delta_percent=$((desired_percent - used_percent))
 
     if [[ -z $delta_percent ]] || [[ $delta_percent -le 0 ]]; then
@@ -85,121 +85,121 @@ fill_to() {
 
 @test "already under threshold" {
     # disk is under the threshold and no files are deleted
-    fill_to 10% test/2021-01-01/conn.log.gz
+    fill_to 10% $TESTDIR/2021-01-01/conn.log.gz
 
-    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir "$TESTDIR" --threshold 90
+    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir $TESTDIR --threshold 90
 
     assert_success
-    assert_file_exist test/2021-01-01/conn.log.gz
+    assert_file_exist $TESTDIR/2021-01-01/conn.log.gz
 }
 
 @test "clean one day" {
     # delete one day to go under threshold
-    fill_to 25% test/2021-01-01/conn.log.gz
-    fill_to 50% test/2021-01-02/conn.log.gz
-    fill_to 75% test/2021-01-03/conn.log.gz
-    fill_to 95% test/2021-01-04/conn.log.gz
+    fill_to 25% $TESTDIR/2021-01-01/conn.log.gz
+    fill_to 50% $TESTDIR/2021-01-02/conn.log.gz
+    fill_to 75% $TESTDIR/2021-01-03/conn.log.gz
+    fill_to 95% $TESTDIR/2021-01-04/conn.log.gz
 
-    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir "$TESTDIR" --threshold 90
+    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir $TESTDIR --threshold 90
 
     assert_success
-    assert_file_not_exist test/2021-01-01
-    assert_file_exist test/2021-01-02/conn.log.gz
-    assert_file_exist test/2021-01-03/conn.log.gz
-    assert_file_exist test/2021-01-04/conn.log.gz
+    assert_file_not_exist $TESTDIR/2021-01-01
+    assert_file_exist $TESTDIR/2021-01-02/conn.log.gz
+    assert_file_exist $TESTDIR/2021-01-03/conn.log.gz
+    assert_file_exist $TESTDIR/2021-01-04/conn.log.gz
 }
 
 @test "clean multiple days" {
     # delete two days to go under threshold
-    fill_to  5% test/2021-01-01/conn.log.gz
-    fill_to 10% test/2021-01-02/conn.log.gz
-    fill_to 50% test/2021-01-03/conn.log.gz
-    fill_to 91% test/2021-01-04/conn.log.gz
+    fill_to  5% $TESTDIR/2021-01-01/conn.log.gz
+    fill_to 10% $TESTDIR/2021-01-02/conn.log.gz
+    fill_to 50% $TESTDIR/2021-01-03/conn.log.gz
+    fill_to 91% $TESTDIR/2021-01-04/conn.log.gz
 
-    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir "$TESTDIR" --threshold 90
+    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir $TESTDIR --threshold 90
 
     assert_success
-    assert_file_not_exist test/2021-01-01
-    assert_file_not_exist test/2021-01-02
-    assert_file_exist test/2021-01-03/conn.log.gz
-    assert_file_exist test/2021-01-04/conn.log.gz
+    assert_file_not_exist $TESTDIR/2021-01-01
+    assert_file_not_exist $TESTDIR/2021-01-02
+    assert_file_exist $TESTDIR/2021-01-03/conn.log.gz
+    assert_file_exist $TESTDIR/2021-01-04/conn.log.gz
 }
 
 @test "missing days" {
     # delete the oldest day regardless how old it is
-    fill_to  5% test/2021-01-01/conn.log.gz
-    fill_to 10% test/2021-02-02/conn.log.gz
-    fill_to 50% test/2021-03-03/conn.log.gz
-    fill_to 91% test/2021-12-31/conn.log.gz
+    fill_to  5% $TESTDIR/2021-01-01/conn.log.gz
+    fill_to 10% $TESTDIR/2021-02-02/conn.log.gz
+    fill_to 50% $TESTDIR/2021-03-03/conn.log.gz
+    fill_to 91% $TESTDIR/2021-12-31/conn.log.gz
 
-    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir "$TESTDIR" --threshold 90
+    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir $TESTDIR --threshold 90
 
     assert_success
-    assert_file_not_exist test/2021-01-01
-    assert_file_not_exist test/2021-02-02
-    assert_file_exist test/2021-03-03/conn.log.gz
-    assert_file_exist test/2021-12-31/conn.log.gz
+    assert_file_not_exist $TESTDIR/2021-01-01
+    assert_file_not_exist $TESTDIR/2021-02-02
+    assert_file_exist $TESTDIR/2021-03-03/conn.log.gz
+    assert_file_exist $TESTDIR/2021-12-31/conn.log.gz
 }
 
 @test "skip extra directories" {
     # do not delete anything outside of dated directories
-    fill_to 91% test/do_not_delete/conn.log.gz
-    fill_to 92% test/2021-01-01/conn.log.gz
+    fill_to 91% $TESTDIR/do_not_delete/conn.log.gz
+    fill_to 92% $TESTDIR/2021-01-01/conn.log.gz
 
-    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir "$TESTDIR" --threshold 90
+    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir $TESTDIR --threshold 90
 
     assert_failure
-    assert_file_exist test/do_not_delete/conn.log.gz
-    assert_file_not_exist test/2021-01-01
+    assert_file_exist $TESTDIR/do_not_delete/conn.log.gz
+    assert_file_not_exist $TESTDIR/2021-01-01
 }
 
 @test "skip today" {
     # do not delete today's logs even if they are the only logs
     local today=$(date -u "+%Y-%m-%d")
-    fill_to 91% test/$today/conn.log.gz
+    fill_to 91% $TESTDIR/$today/conn.log.gz
 
-    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir "$TESTDIR" --threshold 90
+    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir $TESTDIR --threshold 90
 
     assert_failure
-    assert_file_exist test/$today/conn.log.gz
+    assert_file_exist $TESTDIR/$today/conn.log.gz
 }
 
 @test "clean failure" {
     # exit with failure if cannot get disk below threshold
-    fill_to 91% test/2021-01-01/conn.log.gz
+    fill_to 91% $TESTDIR/2021-01-01/conn.log.gz
     # make file immutable to prevent deletion
-    sudo chattr +i test/2021-01-01/conn.log.gz
+    sudo chattr +i $TESTDIR/2021-01-01/conn.log.gz
 
-    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir "$TESTDIR" --threshold 90
+    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir $TESTDIR --threshold 90
 
     assert_failure
-    assert_file_exist test/2021-01-01/conn.log.gz
+    assert_file_exist $TESTDIR/2021-01-01/conn.log.gz
 }
 
 @test "multiple sensors" {
     # delete multiple directories with the same date
-    fill_to 30% test/sensor1/2021-01-01/conn.log.gz
-    fill_to 60% test/sensor2/2021-01-01/conn.log.gz
-    fill_to 90% test/sensor3/2021-01-01/conn.log.gz
-    fill_to 91% test/sensor4/2021-01-02/conn.log.gz
+    fill_to 30% $TESTDIR/sensor1/2021-01-01/conn.log.gz
+    fill_to 60% $TESTDIR/sensor2/2021-01-01/conn.log.gz
+    fill_to 90% $TESTDIR/sensor3/2021-01-01/conn.log.gz
+    fill_to 91% $TESTDIR/sensor4/2021-01-02/conn.log.gz
 
-    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir "$TESTDIR" --threshold 90
+    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir $TESTDIR --threshold 90
 
     assert_success
-    assert_file_not_exist test/sensor1/2021-01-01
-    assert_file_not_exist test/sensor2/2021-01-01
-    assert_file_not_exist test/sensor3/2021-01-01
-    assert_file_exist test/sensor4/2021-01-02
+    assert_file_not_exist $TESTDIR/sensor1/2021-01-01
+    assert_file_not_exist $TESTDIR/sensor2/2021-01-01
+    assert_file_not_exist $TESTDIR/sensor3/2021-01-01
+    assert_file_exist $TESTDIR/sensor4/2021-01-02
 }
 
 @test "different threshold" {
     # delete files checking a custom threshold
-    fill_to 25% test/2021-01-01/conn.log.gz
-    fill_to 51% test/2021-01-02/conn.log.gz
+    fill_to 25% $TESTDIR/2021-01-01/conn.log.gz
+    fill_to 51% $TESTDIR/2021-01-02/conn.log.gz
 
-    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir "$TESTDIR" --threshold 50
+    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir $TESTDIR --threshold 50
 
     assert_success
-    assert_file_not_exist test/2021-01-01
-    assert_file_exist test/2021-01-02
+    assert_file_not_exist $TESTDIR/2021-01-01
+    assert_file_exist $TESTDIR/2021-01-02
 }
