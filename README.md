@@ -1,5 +1,14 @@
+# Zeek Log Clean
 
-This script will delete files until disk usage is under a given threshold.
+This script will delete Zeek log files until disk usage is under a given threshold (default 90% used).
+
+## Running
+
+Recommended use: put the following in `/etc/cron.d/zeek-log-clean`
+
+```cron
+* * * * * root flock /tmp/zeek-log-clean /usr/local/bin/zeek_log_clean.sh
+```
 
 ## Testing
 

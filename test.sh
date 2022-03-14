@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# change to directory this script is in, follwoing any symlinks
+# change to directory this script is in, following any symlinks
 pushd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" > /dev/null
 
 # export BATSLIB_TEMP_PRESERVE=1

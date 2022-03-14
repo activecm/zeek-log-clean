@@ -7,6 +7,7 @@ setup() {
     # create temp directory
     # https://github.com/ztombol/bats-file#temp_make
     WORKDIR=$(temp_make)
+    TESTDIR="$WORKDIR/test"
     cd "$WORKDIR"
 
     # https://www.cyberciti.biz/faq/howto-create-lage-files-with-dd-command/
@@ -19,15 +20,9 @@ setup() {
     mkfs -t ext4 test.img 1060 >/dev/null 2>&1
     # mount the disk image
     mkdir -p test
-    sudo mount -o loop,rw,sync test.img test
+    sudo mount -o loop,rw,sync test.img "$TESTDIR"
     # allow writing to the mounted image
     sudo chown $(id -u):$(id -g) test
-
-    # config for target script
-    export LOG_DIR="$WORKDIR/test"
-    export CRIT_DISK_USAGE=90
-
-    # rm -rf test/*
 }
 
 teardown() {
@@ -52,9 +47,9 @@ fill_to() {
 
     mkdir -p $(dirname "$target_file")
     
-    used_percent=$(df -P "$LOG_DIR" | tail -1 | awk '{print $5}' | tr -d %)
-    available_blocks=$(df -P "$LOG_DIR" | tail -1 | awk '{print $4}')
-    total_blocks=$(df -P "$LOG_DIR" | tail -1 | awk '{print $2}')
+    used_percent=$(df -P "$TESTDIR" | tail -1 | awk '{print $5}' | tr -d %)
+    available_blocks=$(df -P "$TESTDIR" | tail -1 | awk '{print $4}')
+    total_blocks=$(df -P "$TESTDIR" | tail -1 | awk '{print $2}')
     delta_percent=$((desired_percent - used_percent))
 
     if [[ -z $delta_percent ]] || [[ $delta_percent -le 0 ]]; then
@@ -92,7 +87,7 @@ fill_to() {
     # disk is under the threshold and no files are deleted
     fill_to 10% test/2021-01-01/conn.log.gz
 
-    run $BATS_TEST_DIRNAME/../hunt_clean_logs.sh
+    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir "$TESTDIR" --threshold 90
 
     assert_success
     assert_file_exist test/2021-01-01/conn.log.gz
@@ -105,7 +100,7 @@ fill_to() {
     fill_to 75% test/2021-01-03/conn.log.gz
     fill_to 95% test/2021-01-04/conn.log.gz
 
-    run $BATS_TEST_DIRNAME/../hunt_clean_logs.sh
+    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir "$TESTDIR" --threshold 90
 
     assert_success
     assert_file_not_exist test/2021-01-01
@@ -121,7 +116,7 @@ fill_to() {
     fill_to 50% test/2021-01-03/conn.log.gz
     fill_to 91% test/2021-01-04/conn.log.gz
 
-    run $BATS_TEST_DIRNAME/../hunt_clean_logs.sh
+    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir "$TESTDIR" --threshold 90
 
     assert_success
     assert_file_not_exist test/2021-01-01
@@ -137,7 +132,7 @@ fill_to() {
     fill_to 50% test/2021-03-03/conn.log.gz
     fill_to 91% test/2021-12-31/conn.log.gz
 
-    run $BATS_TEST_DIRNAME/../hunt_clean_logs.sh
+    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir "$TESTDIR" --threshold 90
 
     assert_success
     assert_file_not_exist test/2021-01-01
@@ -151,7 +146,7 @@ fill_to() {
     fill_to 91% test/do_not_delete/conn.log.gz
     fill_to 92% test/2021-01-01/conn.log.gz
 
-    run $BATS_TEST_DIRNAME/../hunt_clean_logs.sh
+    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir "$TESTDIR" --threshold 90
 
     assert_failure
     assert_file_exist test/do_not_delete/conn.log.gz
@@ -163,7 +158,7 @@ fill_to() {
     local today=$(date -u "+%Y-%m-%d")
     fill_to 91% test/$today/conn.log.gz
 
-    run $BATS_TEST_DIRNAME/../hunt_clean_logs.sh
+    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir "$TESTDIR" --threshold 90
 
     assert_failure
     assert_file_exist test/$today/conn.log.gz
@@ -175,7 +170,7 @@ fill_to() {
     # make file immutable to prevent deletion
     sudo chattr +i test/2021-01-01/conn.log.gz
 
-    run $BATS_TEST_DIRNAME/../hunt_clean_logs.sh
+    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir "$TESTDIR" --threshold 90
 
     assert_failure
     assert_file_exist test/2021-01-01/conn.log.gz
@@ -188,11 +183,23 @@ fill_to() {
     fill_to 90% test/sensor3/2021-01-01/conn.log.gz
     fill_to 91% test/sensor4/2021-01-02/conn.log.gz
 
-    run $BATS_TEST_DIRNAME/../hunt_clean_logs.sh
+    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir "$TESTDIR" --threshold 90
 
     assert_success
     assert_file_not_exist test/sensor1/2021-01-01
     assert_file_not_exist test/sensor2/2021-01-01
     assert_file_not_exist test/sensor3/2021-01-01
     assert_file_exist test/sensor4/2021-01-02
+}
+
+@test "different threshold" {
+    # delete files checking a custom threshold
+    fill_to 25% test/2021-01-01/conn.log.gz
+    fill_to 51% test/2021-01-02/conn.log.gz
+
+    run $BATS_TEST_DIRNAME/../zeek_log_clean.sh --dir "$TESTDIR" --threshold 50
+
+    assert_success
+    assert_file_not_exist test/2021-01-01
+    assert_file_exist test/2021-01-02
 }
