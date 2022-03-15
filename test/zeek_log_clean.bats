@@ -1,8 +1,8 @@
 # special bats function
 setup() {
     load 'bats-support/load'
-	load 'bats-assert/load'
-	load 'bats-file/load'
+    load 'bats-assert/load'
+    load 'bats-file/load'
 
     # create temp directory
     # https://github.com/ztombol/bats-file#temp_make
@@ -16,7 +16,7 @@ setup() {
     # create disk image for testing
     # NOTE: keep disk size small to make tests run faster
     dd if=/dev/zero of=test.img bs=1K count=2048 conv=sparse status=none
-    # create partition in the disk image; try to be more exact
+    # create partition in the disk image; set specific number of blocks in attempt to get more precise percentages
     mkfs -t ext4 test.img 1060 >/dev/null 2>&1
     # mount the disk image
     mkdir -p $TESTDIR
@@ -67,21 +67,18 @@ fill_to() {
     fi
 
     # NOTE: df doesn't count sparse files as used space
-    # dd if=/dev/zero of="$target_file" bs=1024 count=$blocks_to_write  status=none
-    # # overwrite the file with zeroes; faster way to de-sparsify the file
-    # shred -n 0 -z "$target_file"
+    #dd if=/dev/zero of="$target_file" bs=1024 count=$blocks_to_write conv=sparse status=none
+    # overwrite the file with zeroes; faster way to de-sparsify the file for larger files
+    #shred -n 0 -z "$target_file"
 
     # write in larger bs chunks to speed it up
     blocks_to_write=$((blocks_to_write / 4))
     blocks_to_write=${blocks_to_write%.*}
 
     dd if=/dev/zero of="$target_file" bs=4096 count=$blocks_to_write status=none
-
-    # echo "Filling to $desired_percent%"
-    # df -P test
 }
 
-# NOTE: disk usage percent is flaky and I can't seem to get a desired value
+# NOTE: I can't get a precise desired usage value. All percentages should be treated as approximate.
 
 @test "already under threshold" {
     # disk is under the threshold and no files are deleted
