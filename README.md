@@ -6,6 +6,15 @@ This script will delete the oldest Zeek log files until disk usage is under a gi
 
 Place the script in your path (e.g. `/usr/local/bin/zeek_log_clean.sh`).
 
+```bash
+sudo curl -o /usr/local/bin/zeek_log_clean.sh https://raw.githubusercontent.com/activecm/zeek-log-clean/main/zeek_log_clean.sh && chmod +x /usr/local/bin/zeek_log_clean.sh
+```
+
+The recommended use is to automate running of the script by put the following in `/etc/cron.d/zeek-log-clean`
+```cron
+* * * * * root flock /tmp/zeek-log-clean /usr/local/bin/zeek_log_clean.sh
+```
+
 You can run the script ad hoc.
 ```bash
 zeek_log_clean.sh
@@ -24,11 +33,6 @@ zeek_log_clean.sh --threshold 80
 If `rita` is available, the script will also attempt to delete the corresponding [RITA](https://github.com/activecm/rita) dataset. You can disable this behavior. 
 ```bash
 zeek_log_clean.sh --no-remove-rita
-```
-
-The recommended use is to automate running of the script by put the following in `/etc/cron.d/zeek-log-clean`
-```cron
-* * * * * root flock /tmp/zeek-log-clean /usr/local/bin/zeek_log_clean.sh
 ```
 
 ## Testing
