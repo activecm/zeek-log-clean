@@ -12,7 +12,7 @@ sudo curl -o /usr/local/bin/zeek_log_clean.sh https://raw.githubusercontent.com/
 
 The recommended use is to automate running of the script by put the following in `/etc/cron.d/zeek-log-clean`
 ```cron
-* * * * * root flock /tmp/zeek-log-clean /usr/local/bin/zeek_log_clean.sh
+* * * * * root flock -n /tmp/zeek-log-clean /usr/local/bin/zeek_log_clean.sh
 ```
 
 You can run the script ad hoc.
