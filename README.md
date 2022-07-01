@@ -5,14 +5,13 @@ This script will delete the oldest Zeek log files until disk usage is under a gi
 ## Running
 
 Place the script in your path (e.g. `/usr/local/bin/zeek_log_clean.sh`).
-
 ```bash
-sudo curl -o /usr/local/bin/zeek_log_clean.sh https://raw.githubusercontent.com/activecm/zeek-log-clean/main/zeek_log_clean.sh && chmod +x /usr/local/bin/zeek_log_clean.sh
+sudo curl -o /usr/local/bin/zeek_log_clean.sh https://raw.githubusercontent.com/activecm/zeek-log-clean/main/zeek_log_clean.sh && sudo chmod +x /usr/local/bin/zeek_log_clean.sh
 ```
 
-The recommended use is to automate running of the script by put the following in `/etc/cron.d/zeek-log-clean`
-```cron
-* * * * * root flock -n /tmp/zeek-log-clean /usr/local/bin/zeek_log_clean.sh
+The recommended use is to automate running of the script with cron. The following command will configure this.
+```bash
+echo "* * * * * root flock -n /tmp/zeek-log-clean /usr/local/bin/zeek_log_clean.sh" | sudo tee /etc/cron.d/zeek-log-clean
 ```
 
 You can run the script ad hoc.
